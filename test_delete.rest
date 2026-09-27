@@ -8,7 +8,7 @@ Content-Type: application/json
 
 {
     "name": "a",
-    "number": ""
+    "number": "1"
 }
 ###
 GET http://localhost:3001/api/persons
