@@ -11,38 +11,46 @@ morgan.token('body', (req) => JSON.stringify(req.body))
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
 app.get('/api/persons', (req, res) => {
-    res.json(phonebook);
+    Person.find({}).then(result => {
+        res.json(result)
+    })
 })
 
 app.get('/info', (req, res) => {
-    res.send(`
-        <p>Phonebook has info for ${phonebook.length} people</p>
-        <p>${new Date()}</p>
-        `)
+    Person.find({}).then(result => {
+        res.send(`
+            <p>Phonebook has info for ${result.length} people</p>
+            <p>${new Date()}</p>
+            `)
+    })
 })
 
 app.get('/api/persons/:id', (request, response) => {
   const id = request.params.id
-  const person = phonebook.find(person => person.id === id)
-
-  if (person) {
-    response.json(person)
-  } else {
-    response.status(404).end()
-  }
+  Person.findById(id).then(result => {
+    if (result) {
+      response.json(result)
+    } else {
+      response.status(404).end()
+    }
+  })
+  .catch(error => {
+    console.log(error)
+    response.status(400).send({ error: 'malformatted id' })
+  })
 })
 
 app.delete('/api/persons/:id', (request, response) => {
   const id = request.params.id
-  phonebook = phonebook.filter(person => person.id !== id)
-
-  response.status(204).end()
+  Person.findByIdAndRemove(id).then(result => {
+      response.status(204).end()
+  })
+  .catch(error => {
+    console.log(error)
+    response.status(400).send({ error: 'malformatted id' })
+  })
 })
 
-const generateId = () => {
-  const randomId = Math.random().toString(36).substring(2, 10)
-  return randomId
-}
 
 app.post('/api/persons', (request, response) => {
   const body = request.body
@@ -57,21 +65,15 @@ app.post('/api/persons', (request, response) => {
       error: 'number missing'
     })
   }
-  if (phonebook.find(person => person.name === body.name)) {
-    return response.status(400).json({
-      error: 'name must be unique'
-    })
-  }
-
-  const person = {
-    id: generateId(),
+  
+  const person = new Person({
     name: body.name,
     number: body.number,
-  }
+  })
 
-  phonebook = phonebook.concat(person)
-
-  response.json(phonebook)
+  person.save().then(result => {
+    response.json(result)
+  })
 })
 
 const unknownEndpoint = (request, response) => {
